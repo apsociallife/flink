@@ -1,3 +1,10 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Author: David Rubino
+ */
+
 // Compose a formatted link for the current page
 // Each formatted link has three parts: preText, urlText, and postText.
 // preText: Text to appear before the link. Optional. 
