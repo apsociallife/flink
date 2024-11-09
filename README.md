@@ -18,8 +18,6 @@ This option is offered only for specific sites where I've authored support for e
 ### Copy Selection Link
 If there is selected text on the page, that selected text is used as the label for the link.
 
----
-
 ## Future Feature Ideas
 
 A lot more could be done! I am responsive to email at [david@joivid.com](mailto:david@joivid.com) and happy to take requests.
@@ -34,5 +32,3 @@ A lot more could be done! I am responsive to email at [david@joivid.com](mailto:
 8. Options to right-click on a link in a page and choose to copy it instead of just supporting the address bar button.
 9. Multiple links could be added one at a time to the clipboard across multiple pages.
 10. I could build a previewer UI, so you can always see what was actually placed on the clipboard.
-
----
