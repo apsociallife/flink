@@ -93,7 +93,7 @@ function loadPageAction(tab) {
 
     chrome.contextMenus.create({
         id: 'copyLink',
-        title: 'Copy URL: "' + textLinkText[tab.id] + '"',
+        title: 'Copy URL: ' + textLinkText[tab.id],
         contexts: ['page_action']
     });
 
@@ -118,7 +118,7 @@ function loadPageAction(tab) {
 
         chrome.contextMenus.create({
             id: 'copyTitle',
-            title: 'Copy Title Link: "' + titleLinkText[tab.id] + '"',
+            title: 'Copy Title Link: ' + titleLinkText[tab.id],
             contexts: ['page_action']
         });
     });
@@ -135,7 +135,7 @@ function loadPageAction(tab) {
             console.log('Creating formatted link context menu item');
             chrome.contextMenus.create({
                 id: 'copyFormattedLink',
-                title: 'Copy ' + siteName[tab.id] + ' Flink: ' + formattedLinkPreText[tab.id] + '"' + formattedLinkUrlText[tab.id] + '"' + formattedLinkPostText[tab.id],
+                title: 'Copy ' + siteName[tab.id] + ' Flink: ' + formattedLinkPreText[tab.id] + '[' + formattedLinkUrlText[tab.id] + ']' + formattedLinkPostText[tab.id],
                 contexts: ['page_action']
             });
         } else {
@@ -197,7 +197,7 @@ function loadSelectionLink(tabId) {
         chrome.contextMenus.remove('copySelectionLink');
         chrome.contextMenus.create({
             id: 'copySelectionLink',
-            title: 'Copy Selection Link: "' + selectionLinkText[tabId] + '"',
+            title: 'Copy Selection Link: ' + selectionLinkText[tabId],
             contexts: ['page_action']
         });
 
@@ -235,7 +235,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         console.log('Copy title link context menu item clicked, copying title link to clipboard');
         await navigator.clipboard.write([
             new ClipboardItem({
-                'text/plain': new Blob([tab.url + " (" + titleLinkText[tab.id] + ")"], { type: 'text/plain' }),
+                'text/plain': new Blob(["[" + titleLinkText[tab.id] + "](" + tab.url + ")"], { type: 'text/plain' }),
                 'text/html': new Blob(["<a href='" + tab.url + "'>" + titleLinkText[tab.id] + "</a>"], { type: 'text/html' })
             })
         ])
@@ -245,7 +245,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         console.log('Copy formatted link context menu item clicked, copying formatted link to clipboard');
         await navigator.clipboard.write([
             new ClipboardItem({
-                'text/plain': new Blob([tab.url + " (" + formattedLinkPreText[tab.id] + formattedLinkUrlText[tab.id] + formattedLinkPostText[tab.id] + ")"], { type: 'text/plain' }),
+                'text/plain': new Blob([formattedLinkPreText[tab.id] + "[" + formattedLinkUrlText[tab.id] + "](" + tab.url + ")" + formattedLinkPostText[tab.id]], { type: 'text/plain' }),
                 'text/html': new Blob([formattedLinkPreText[tab.id] + "<a href='" + tab.url + "'>" + formattedLinkUrlText[tab.id] + "</a>" + formattedLinkPostText[tab.id]], { type: 'text/html' })
             })
         ])
@@ -255,7 +255,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         console.log('Copy selection link context menu item clicked, copying selection link to clipboard');
         await navigator.clipboard.write([
             new ClipboardItem({
-                'text/plain': new Blob([tab.url + " (" + selectionLinkText[tab.id] + ")"], { type: 'text/plain' }),
+                'text/plain': new Blob(["[" + selectionLinkText[tab.id] + "](" + tab.url + ")"], { type: 'text/plain' }),
                 'text/html': new Blob(["<a href='" + tab.url + "'>" + selectionLinkText[tab.id] + "</a>"], { type: 'text/html' })
             })
         ])

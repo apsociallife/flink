@@ -16,8 +16,8 @@ function getCurrentPageFormattedLink() {
     let urlText = "";
     let postText = "";
     let siteName = "";
-    let url = window.location.href;
-    
+    let url = window.location.href.split('#')[0];
+
     // Google Docs
     // URL starts with https://docs.google.com/document, https://docs.google.com/spreadsheets, or https://docs.google.com/presentation
     // urlText is the .docs-title-input element value. There is no preText or postText.
@@ -34,7 +34,7 @@ function getCurrentPageFormattedLink() {
         let summaryElement = document.querySelector('h1[data-testid="issue.views.issue-base.foundation.summary.heading"]');
         let summary = summaryElement ? summaryElement.innerText : '';
         urlText = key;
-        postText = ': ' + summary;
+        postText = ': "' + summary + '"';
         siteName = 'Jira Ticket';
 
     // Bugzilla Bugs
@@ -45,9 +45,9 @@ function getCurrentPageFormattedLink() {
         let summaryElement = document.querySelector('#field-value-short_desc');
         let summary = summaryElement ? summaryElement.innerText : '';
         urlText = id;
-        postText = ': ' + summary;
+        postText = ': "' + summary + '"';
         siteName = 'Bugzilla';
-    
+
     // Wikipedia Articles
     // URL starts with https://en.wikipedia.org/wiki
     // urlText is the article title. There is no preText or postText.
