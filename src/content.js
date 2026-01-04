@@ -41,7 +41,9 @@ function getCurrentPageFormattedLink() {
     // URL starts with https://bugzilla.mozilla.org/show_bug.cgi
     // urlText is the bug ID. postText is the bug summary (title). There is no preText.
     } else if (/https:\/\/bugzilla\.mozilla\.org\/show_bug\.cgi/.test(url)) {
-        let id = url.split('=').pop();
+        // Extract bug ID from URL - handle both ?id=123 and &id=123 formats
+        let idMatch = url.match(/[?&]id=(\d+)/);
+        let id = idMatch ? idMatch[1] : '';
         let summaryElement = document.querySelector('#field-value-short_desc');
         let summary = summaryElement ? summaryElement.innerText : '';
         urlText = id;

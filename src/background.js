@@ -15,6 +15,14 @@ let selectionLinkText = {};
 
 let pageActionVisible = {};
 let pageLoading = {};
+let activeTabId = null;
+
+// Initialize active tab on startup
+chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0]) {
+        activeTabId = tabs[0].id;
+    }
+});
 
 //Add or remove page action button and context menu when the tab is updated
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -25,26 +33,42 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
         pageLoading[tabId] = true;
         chrome.pageAction.hide(tabId);
         pageActionVisible[tabId] = false;
-        chrome.contextMenus.removeAll();
+        // Only remove context menu if this is the active tab
+        if (tabId === activeTabId) {
+            chrome.contextMenus.removeAll();
+        }
     }
 
     // If the tab has finished loading, show the page action button and set up the context menu
-    // If the tab title has changed, refreesh the context menu
-    if (changeInfo.status === 'complete' || (changeInfo.title && pageActionVisible[tabId])) {
+    // If the tab title has changed, refresh the context menu only if it's the active tab
+    if (changeInfo.status === 'complete') {
         console.log('Tab loading is complete, setting up button and menu for tab: ', tabId);
         pageLoading[tabId] = false;
-        chrome.contextMenus.removeAll();
-        loadPageAction(tab);
-        getSelection(tabId);
+        // Only update context menu if this is the active tab
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0] && tabs[0].id === tabId) {
+                activeTabId = tabId;
+                chrome.contextMenus.removeAll();
+                loadPageAction(tab);
+                getSelection(tabId);
+            }
+        });
         console.log('Showing page action button for tab:', tabId);
         chrome.pageAction.show(tabId);
         pageActionVisible[tabId] = true;
+    } else if (changeInfo.title && pageActionVisible[tabId] && tabId === activeTabId) {
+        // Tab title changed - only update context menu if this is the active tab
+        console.log('Tab title changed for active tab, refreshing context menu: ', tabId);
+        chrome.contextMenus.removeAll();
+        loadPageAction(tab);
+        getSelection(tabId);
     }
 });
 
 // Refresh the page action button and context menu when the tab is activated
 chrome.tabs.onActivated.addListener((activeInfo) => {
     console.log('Tab activated: ', activeInfo.tabId);
+    activeTabId = activeInfo.tabId;
     refreshPageAction(activeInfo.tabId);
 });
 
@@ -53,7 +77,10 @@ chrome.windows.onFocusChanged.addListener((windowId) => {
     console.log('Window focus changed: ', windowId);
     if (windowId > 0) {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            refreshPageAction(tabs[0].id);
+            if (tabs[0]) {
+                activeTabId = tabs[0].id;
+                refreshPageAction(tabs[0].id);
+            }
         });
     }
 });
@@ -78,12 +105,13 @@ function refreshPageAction(tabId) {
         });
 
     } else {
-        console.log('Tab is loading, not refreshing page action button for tab: ', activeInfo.tabId);
+        console.log('Tab is loading, not refreshing page action button for tab: ', tabId);
     }
 }
 
 // Populate the page action button and context menu 
 function loadPageAction(tab) {
+    // Prepare URL text
     if (tab.url.length > 64) {
         textLinkText[tab.id] = tab.url.slice(0, 61) + '...';
     } else {
@@ -91,12 +119,14 @@ function loadPageAction(tab) {
     }
     console.log('textLinkText: ', textLinkText[tab.id]);
 
-    chrome.contextMenus.create({
-        id: 'copyLink',
-        title: 'Copy URL: ' + textLinkText[tab.id],
-        contexts: ['page_action']
-    });
+    // Initialize titleLinkText to null to indicate we're loading
+    titleLinkText[tab.id] = null;
+    formattedLinkPreText[tab.id] = null;
+    formattedLinkUrlText[tab.id] = null;
+    formattedLinkPostText[tab.id] = null;
+    siteName[tab.id] = null;
 
+    // Get title link text
     getOpenGraphTitle(tab.id).then((urlText) => {
         console.log('openGraphTitle: ', urlText);
         titleLinkText[tab.id] = urlText;
@@ -116,30 +146,63 @@ function loadPageAction(tab) {
             console.log("Used Open Graph title: ", titleLinkText[tab.id]);
         }
 
-        chrome.contextMenus.create({
-            id: 'copyTitle',
-            title: 'Copy Title Link: ' + titleLinkText[tab.id],
-            contexts: ['page_action']
-        });
+        // Update context menu items
+        updateContextMenuItems(tab);
     });
 
+    // Get formatted link text
     getFormattedLinkText(tab.id).then((formattedLink) => {
-
         if (formattedLink && formattedLink.urlText) {
             console.log('formattedLinkText: ', formattedLink.preText, formattedLink.urlText, formattedLink.postText);
             formattedLinkPreText[tab.id] = formattedLink.preText;
             formattedLinkUrlText[tab.id] = formattedLink.urlText;
             formattedLinkPostText[tab.id] = formattedLink.postText;
             siteName[tab.id] = formattedLink.siteName;
-
-            console.log('Creating formatted link context menu item');
-            chrome.contextMenus.create({
-                id: 'copyFormattedLink',
-                title: 'Copy ' + siteName[tab.id] + ' Flink: ' + formattedLinkPreText[tab.id] + '[' + formattedLinkUrlText[tab.id] + ']' + formattedLinkPostText[tab.id],
-                contexts: ['page_action']
-            });
         } else {
             console.log('No formatted link text for this page');
+            formattedLinkPreText[tab.id] = '';
+            formattedLinkUrlText[tab.id] = '';
+            formattedLinkPostText[tab.id] = '';
+            siteName[tab.id] = '';
+        }
+
+        // Update context menu items
+        updateContextMenuItems(tab);
+    });
+}
+
+// Update context menu items (called after async data loads)
+function updateContextMenuItems(tab) {
+    // Only update if this is still the active tab (prevents background tabs from overwriting the menu)
+    if (tab.id !== activeTabId) {
+        console.log('Skipping context menu update - tab is not active:', tab.id, 'activeTabId:', activeTabId);
+        return;
+    }
+    
+    // Only update if title data is loaded (it's required for menu creation)
+    if (titleLinkText[tab.id] !== null && titleLinkText[tab.id] !== undefined) {
+        // Also check if formatted link data is loaded (even if empty)
+        if (formattedLinkPreText[tab.id] !== null && formattedLinkPreText[tab.id] !== undefined) {
+            createContextMenuItems(tab);
+        }
+    }
+}
+
+// Create context menu items using shared configuration
+function createContextMenuItems(tab) {
+    // Remove existing items first
+    chrome.contextMenus.removeAll();
+    
+    const options = getLinkOptions(tab);
+    
+    options.forEach(option => {
+        if (option.isAvailable()) {
+            const displayText = option.getDisplayText ? option.getDisplayText() : '';
+            chrome.contextMenus.create({
+                id: option.id,
+                title: option.label + displayText,
+                contexts: ['page_action']
+            });
         }
     });
 }
@@ -169,11 +232,14 @@ function getFormattedLinkText(tabId) {
 }
 
 // Listen for messages from the content script that the selection has changed
-chrome.runtime.onMessage.addListener((message, sender) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'selectionChanged') {
         console.log('Selection changed: ', message.selection);
         selectionLinkText[sender.tab.id] = message.selection;
-        loadSelectionLink(sender.tab.id);
+        // Only update context menu if this is the active tab
+        if (sender.tab.id === activeTabId) {
+            loadSelectionLink(sender.tab.id);
+        }
     }
 });
 
@@ -190,74 +256,121 @@ function getSelection(tabId) {
 
 // Load the selection link for the current tab
 function loadSelectionLink(tabId) {
-
-    if (selectionLinkText[tabId]) {
-
-        console.log('Creating selection link context menu item for selection: ', selectionLinkText[tabId]);
-        chrome.contextMenus.remove('copySelectionLink');
-        chrome.contextMenus.create({
-            id: 'copySelectionLink',
-            title: 'Copy Selection Link: ' + selectionLinkText[tabId],
-            contexts: ['page_action']
-        });
-
-    } else {
-        console.log('Removing selection link context menu item');
-        chrome.contextMenus.remove('copySelectionLink');
-    }
+    // Get the tab and recreate all context menu items with updated selection
+    chrome.tabs.get(tabId, (tab) => {
+        if (tab) {
+            createContextMenuItems(tab);
+        }
+    });
 }
 
-// When the button is clicked, copy the URL to the clipboard
-chrome.pageAction.onClicked.addListener(async (tab) => {
-    console.log('Page action button clicked, copying URL to clipboard');
+// Shared copy functions for all link types
+async function copyUrl(tab) {
     await navigator.clipboard.write([
         new ClipboardItem({
             'text/plain': new Blob([tab.url], { type: 'text/plain' }),
             'text/html': new Blob(["<a href='" + tab.url + "'>" + tab.url + "</a>"], { type: 'text/html' })
         })
-    ])
+    ]);
+}
+
+async function copyTitleLink(tab) {
+    await navigator.clipboard.write([
+        new ClipboardItem({
+            'text/plain': new Blob(["[" + titleLinkText[tab.id] + "](" + tab.url + ")"], { type: 'text/plain' }),
+            'text/html': new Blob(["<a href='" + tab.url + "'>" + titleLinkText[tab.id] + "</a>"], { type: 'text/html' })
+        })
+    ]);
+}
+
+async function copyFormattedLink(tab) {
+    await navigator.clipboard.write([
+        new ClipboardItem({
+            'text/plain': new Blob([formattedLinkPreText[tab.id] + "[" + formattedLinkUrlText[tab.id] + "](" + tab.url + ")" + formattedLinkPostText[tab.id]], { type: 'text/plain' }),
+            'text/html': new Blob([formattedLinkPreText[tab.id] + "<a href='" + tab.url + "'>" + formattedLinkUrlText[tab.id] + "</a>" + formattedLinkPostText[tab.id]], { type: 'text/html' })
+        })
+    ]);
+}
+
+async function copySelectionLink(tab) {
+    await navigator.clipboard.write([
+        new ClipboardItem({
+            'text/plain': new Blob(["[" + selectionLinkText[tab.id] + "](" + tab.url + ")"], { type: 'text/plain' }),
+            'text/html': new Blob(["<a href='" + tab.url + "'>" + selectionLinkText[tab.id] + "</a>"], { type: 'text/html' })
+        })
+    ]);
+}
+
+// Get shared link options configuration for a tab
+function getLinkOptions(tab) {
+    const options = [];
+    
+    // Always include URL option
+    options.push({
+        id: 'copyLink',
+        label: 'Copy URL: ',
+        getDisplayText: () => textLinkText[tab.id] || tab.url,
+        isAvailable: () => true,
+        copy: () => copyUrl(tab)
+    });
+    
+    // Title link option (only if title is loaded and not null/undefined)
+    if (titleLinkText[tab.id] !== null && titleLinkText[tab.id] !== undefined) {
+        options.push({
+            id: 'copyTitle',
+            label: 'Copy Title Link: ',
+            getDisplayText: () => titleLinkText[tab.id],
+            isAvailable: () => true,
+            copy: () => copyTitleLink(tab)
+        });
+    }
+    
+    // Selection link option
+    if (selectionLinkText[tab.id]) {
+        options.push({
+            id: 'copySelectionLink',
+            label: 'Copy Selection Link: ',
+            getDisplayText: () => selectionLinkText[tab.id],
+            isAvailable: () => true,
+            copy: () => copySelectionLink(tab)
+        });
+    }
+    
+    // Formatted link option (only if formatted link data exists)
+    if (formattedLinkUrlText[tab.id] !== null && formattedLinkUrlText[tab.id] !== undefined && 
+        formattedLinkUrlText[tab.id] !== '' && 
+        siteName[tab.id] !== null && siteName[tab.id] !== undefined && siteName[tab.id] !== '') {
+        options.push({
+            id: 'copyFormattedLink',
+            label: 'Copy ' + siteName[tab.id] + ' Flink: ',
+            getDisplayText: () => formattedLinkPreText[tab.id] + '[' + formattedLinkUrlText[tab.id] + ']' + formattedLinkPostText[tab.id],
+            getFormattedParts: () => ({
+                preText: formattedLinkPreText[tab.id] || '',
+                urlText: formattedLinkUrlText[tab.id] || '',
+                postText: formattedLinkPostText[tab.id] || ''
+            }),
+            isAvailable: () => true,
+            copy: () => copyFormattedLink(tab)
+        });
+    }
+    
+    return options;
+}
+
+// When the button is clicked, copy the URL to the clipboard
+// Note: This will not fire when popup is defined, but kept for backwards compatibility
+chrome.pageAction.onClicked.addListener(async (tab) => {
+    console.log('Page action button clicked, copying URL to clipboard');
+    await copyUrl(tab);
 });
 
 // Handle context menu options 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-
-    if (info.menuItemId === 'copyLink') {
-        console.log('Copy link context menu item clicked, copying URL to clipboard');
-        await navigator.clipboard.write([
-            new ClipboardItem({
-                'text/plain': new Blob([tab.url], { type: 'text/plain' }),
-                'text/html': new Blob(["<a href='" + tab.url + "'>" + tab.url + "</a>"], { type: 'text/html' })
-            })
-        ])
-    }
-
-    if (info.menuItemId === 'copyTitle') {
-        console.log('Copy title link context menu item clicked, copying title link to clipboard');
-        await navigator.clipboard.write([
-            new ClipboardItem({
-                'text/plain': new Blob(["[" + titleLinkText[tab.id] + "](" + tab.url + ")"], { type: 'text/plain' }),
-                'text/html': new Blob(["<a href='" + tab.url + "'>" + titleLinkText[tab.id] + "</a>"], { type: 'text/html' })
-            })
-        ])
-    }
-
-    if (info.menuItemId === 'copyFormattedLink') {
-        console.log('Copy formatted link context menu item clicked, copying formatted link to clipboard');
-        await navigator.clipboard.write([
-            new ClipboardItem({
-                'text/plain': new Blob([formattedLinkPreText[tab.id] + "[" + formattedLinkUrlText[tab.id] + "](" + tab.url + ")" + formattedLinkPostText[tab.id]], { type: 'text/plain' }),
-                'text/html': new Blob([formattedLinkPreText[tab.id] + "<a href='" + tab.url + "'>" + formattedLinkUrlText[tab.id] + "</a>" + formattedLinkPostText[tab.id]], { type: 'text/html' })
-            })
-        ])
-    }
-
-    if (info.menuItemId === 'copySelectionLink') {
-        console.log('Copy selection link context menu item clicked, copying selection link to clipboard');
-        await navigator.clipboard.write([
-            new ClipboardItem({
-                'text/plain': new Blob(["[" + selectionLinkText[tab.id] + "](" + tab.url + ")"], { type: 'text/plain' }),
-                'text/html': new Blob(["<a href='" + tab.url + "'>" + selectionLinkText[tab.id] + "</a>"], { type: 'text/html' })
-            })
-        ])
+    const options = getLinkOptions(tab);
+    const option = options.find(opt => opt.id === info.menuItemId);
+    
+    if (option) {
+        console.log('Context menu item clicked:', info.menuItemId);
+        await option.copy();
     }
 });
