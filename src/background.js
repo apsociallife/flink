@@ -277,16 +277,32 @@ async function copyUrl(tab) {
 async function copyTitleLink(tab) {
     await navigator.clipboard.write([
         new ClipboardItem({
-            'text/plain': new Blob(["[" + titleLinkText[tab.id] + "](" + tab.url + ")"], { type: 'text/plain' }),
+            'text/plain': new Blob(['"' + titleLinkText[tab.id] + '" (' + tab.url + ')'], { type: 'text/plain' }),
             'text/html': new Blob(["<a href='" + tab.url + "'>" + titleLinkText[tab.id] + "</a>"], { type: 'text/html' })
         })
     ]);
 }
 
 async function copyFormattedLink(tab) {
+    // Format text/plain based on site type
+    let plainText = '';
+    if (siteName[tab.id] === 'Google Docs' || siteName[tab.id] === 'Wikipedia') {
+        // Google Docs: "Title" (URL)
+        // Wikipedia: Just URL
+        if (siteName[tab.id] === 'Google Docs') {
+            plainText = '"' + formattedLinkUrlText[tab.id] + '" (' + tab.url + ')';
+        } else {
+            // Wikipedia: just the URL
+            plainText = tab.url;
+        }
+    } else {
+        // Bugzilla/Jira: URL: "Summary"
+        plainText = tab.url + formattedLinkPostText[tab.id];
+    }
+    
     await navigator.clipboard.write([
         new ClipboardItem({
-            'text/plain': new Blob([formattedLinkPreText[tab.id] + "[" + formattedLinkUrlText[tab.id] + "](" + tab.url + ")" + formattedLinkPostText[tab.id]], { type: 'text/plain' }),
+            'text/plain': new Blob([plainText], { type: 'text/plain' }),
             'text/html': new Blob([formattedLinkPreText[tab.id] + "<a href='" + tab.url + "'>" + formattedLinkUrlText[tab.id] + "</a>" + formattedLinkPostText[tab.id]], { type: 'text/html' })
         })
     ]);
@@ -295,7 +311,7 @@ async function copyFormattedLink(tab) {
 async function copySelectionLink(tab) {
     await navigator.clipboard.write([
         new ClipboardItem({
-            'text/plain': new Blob(["[" + selectionLinkText[tab.id] + "](" + tab.url + ")"], { type: 'text/plain' }),
+            'text/plain': new Blob(['"' + selectionLinkText[tab.id] + '" (' + tab.url + ')'], { type: 'text/plain' }),
             'text/html': new Blob(["<a href='" + tab.url + "'>" + selectionLinkText[tab.id] + "</a>"], { type: 'text/html' })
         })
     ]);
