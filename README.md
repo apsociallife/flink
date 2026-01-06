@@ -1,26 +1,28 @@
 ## Flink Extension Overview
 
-This extension is your comprehensive solution for copying links... or it will be one day as its feature set expands. Ideally, we'll get some of this functionality built into Firefox in the future, but for now, this extension serves as a playground.
+This extension is your comprehensive solution for copying links... or it will be one day as its feature set expands. Ideally, we'll get some of this functionality built into Firefox, but for now, this extension serves as a playground.
 
 The **Flink** address bar button simply copies the URL to the clipboard as is. If you right-click, you'll see this option repeated, and then you'll also see up to three additional options:
 
 ### Copy Title
 The page title is used for the label for the link. This looks for the OpenGraph title on the page if there is one, and if there isn't one, it uses the HTML title of the page.
 
+### Copy Selection Link
+If there is selected text on the page, that selected text is used as the label for the link.
+
 ### Copy Flink
 This option is offered only for specific sites where I've authored support for extracting elements from the page.
 
 - **Google Docs** use the document name: [Product Change Proposal April 2025]()
-- **Jira Tickets** use the key as a link, followed by the title in text: [TR-1234](): Complete product specification and get review
-- **Bugzilla Bugs** use the ID as the link, followed by the title in text: [1234567](): Firefox crashes when playing multiple videos in the same tab
+- **Jira Tickets** use the key as a link, followed by the title in quotes: [TR-1234](): "Complete product specification and get review"
+- **Bugzilla Bugs** use the ID as the link, followed by the title in quotes: [1234567](): "Firefox crashes when playing multiple videos in the same tab"
 - **Wikipedia Articles** use the article name: [Pulitzer Prize]()
 
-### Copy Selection Link
-If there is selected text on the page, that selected text is used as the label for the link.
+The above are formats copied to the HTML clipboard. Each link type also has a bespoke layout for the plain text clipboard. 
 
 ## Future Feature Ideas
 
-A lot more could be done! I am responsive to email at [david@joivid.com](mailto:david@joivid.com) and happy to take requests.
+A lot more could be done! Please file issues here and I will see them. I am also responsive to email at [flink@joivid.com](mailto:flink@joivid.com) and happy to chat.
 
 1. The way I choose to format links, whether for title, selection, or my site-specific support, is my preference, but I could make it configurable.
 2. I can support more sites for flinks. Let me know your requests, and I will do it.
