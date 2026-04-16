@@ -24,6 +24,13 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     }
 });
 
+// Persistent context menu item for right-clicking selected text on any page
+chrome.contextMenus.create({
+    id: 'copySelectionFlink',
+    title: 'Copy Selection Flink',
+    contexts: ['selection']
+});
+
 //Add or remove page action button and context menu when the tab is updated
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
@@ -35,7 +42,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
         pageActionVisible[tabId] = false;
         // Only remove context menu if this is the active tab
         if (tabId === activeTabId) {
-            chrome.contextMenus.removeAll();
+            removePageActionMenuItems();
         }
     }
 
@@ -48,7 +55,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs[0] && tabs[0].id === tabId) {
                 activeTabId = tabId;
-                chrome.contextMenus.removeAll();
+                removePageActionMenuItems();
                 loadPageAction(tab);
                 getSelection(tabId);
             }
@@ -59,7 +66,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     } else if (changeInfo.title && pageActionVisible[tabId] && tabId === activeTabId) {
         // Tab title changed - only update context menu if this is the active tab
         console.log('Tab title changed for active tab, refreshing context menu: ', tabId);
-        chrome.contextMenus.removeAll();
+        removePageActionMenuItems();
         loadPageAction(tab);
         getSelection(tabId);
     }
@@ -95,7 +102,7 @@ function refreshPageAction(tabId) {
             console.log('Tab is not loading, resetting everything for tab: ', tabId);
             chrome.pageAction.hide(tabId);
             pageActionVisible[tabId] = false;
-            chrome.contextMenus.removeAll();
+            removePageActionMenuItems();
             loadPageAction(tab);
             getSelection(tabId);
             console.log('Showing page action button for tab:', tabId);
@@ -188,10 +195,20 @@ function updateContextMenuItems(tab) {
     }
 }
 
+const pageActionMenuIds = ['copyLink', 'copyTitle', 'copySelectionLink', 'copyFormattedLink'];
+
+function removePageActionMenuItems() {
+    pageActionMenuIds.forEach(id => {
+        chrome.contextMenus.remove(id, () => {
+            void chrome.runtime.lastError;
+        });
+    });
+}
+
 // Create context menu items using shared configuration
 function createContextMenuItems(tab) {
-    // Remove existing items first
-    chrome.contextMenus.removeAll();
+    // Remove existing page action items (preserving the persistent selection flink item)
+    removePageActionMenuItems();
     
     const options = getLinkOptions(tab);
     
@@ -382,6 +399,20 @@ chrome.pageAction.onClicked.addListener(async (tab) => {
 
 // Handle context menu options 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+    if (info.menuItemId === 'copySelectionFlink') {
+        let selection = info.selectionText;
+        if (selection && selection.length > 64) {
+            selection = selection.slice(0, 61) + '...';
+        }
+        await navigator.clipboard.write([
+            new ClipboardItem({
+                'text/plain': new Blob(['"' + selection + '" (' + tab.url + ')'], { type: 'text/plain' }),
+                'text/html': new Blob(["<a href='" + tab.url + "'>" + selection + "</a>"], { type: 'text/html' })
+            })
+        ]);
+        return;
+    }
+
     const options = getLinkOptions(tab);
     const option = options.find(opt => opt.id === info.menuItemId);
     

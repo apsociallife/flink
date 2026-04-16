@@ -59,6 +59,26 @@ function getCurrentPageFormattedLink() {
         urlText = urlText.split('#')[0];
         urlText = urlText.replace(/_/g, ' ');
         siteName = 'Wikipedia';
+
+    // GitHub Issues and Pull Requests
+    // URL matches https://github.com/{owner}/{repo}/issues/{number} or .../pull/{number}
+    // preText is [owner/repo]. urlText is the issue/PR number. postText is the title.
+    } else if (/https:\/\/github\.com\/[^/]+\/[^/]+\/(issues|pull)\/\d+/.test(url)) {
+        let match = url.match(/https:\/\/github\.com\/([^/]+\/[^/]+)\/(issues|pull)\/(\d+)/);
+        let repo = match[1];
+        let type = match[2] === 'pull' ? 'PR' : 'Issue';
+        let number = match[3];
+        let titleElement = document.querySelector('.js-issue-title');
+        let title = titleElement ? titleElement.innerText.trim() : '';
+        if (!title) {
+            let docTitle = document.title;
+            let issueMatch = docTitle.match(/^(.*?)\s+·\s+(?:Issue|Pull Request)\s+#/);
+            title = issueMatch ? issueMatch[1].replace(/\s+by\s+\S+$/, '') : '';
+        }
+        preText = '[' + repo + '] ';
+        urlText = type + ' #' + number;
+        postText = ': "' + title + '"';
+        siteName = 'GitHub';
     }
 
     return { preText, urlText, postText, siteName };
