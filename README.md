@@ -16,16 +16,25 @@ This option is offered only for specific sites where I've authored support for e
 - **Google Docs** use the document name: [Product Change Proposal April 2025]()
 - **Jira Tickets** use the key as a link, followed by the title in quotes: [TR-1234](): "Complete product specification and get review"
 - **Bugzilla Bugs** use the ID as the link, followed by the title in quotes: [1234567](): "Firefox crashes when playing multiple videos in the same tab"
+- **GitHub Issues** use the repo and issue number as context: [nicudo/portio] [Issue #16627](): "Class fields are not transformed correctly when targeting ES2022"
+- **GitHub PRs** use the repo and PR number as context: [nicudo/portio] [PR #16645](): "Fix class field ordering with decorators"
 - **Wikipedia Articles** use the article name: [Pulitzer Prize]()
 
-The above are formats copied to the HTML clipboard. Each link type also has a bespoke layout for the plain text clipboard. 
+The above are formats copied to the HTML clipboard. Each link type also has a bespoke layout for the plain text clipboard:
+
+- **Google Docs**: `"Product Change Proposal April 2025" (https://docs.google.com/document/d/1KvfJgi6he_AD-2wKGpPHfv25e15jab6MI5VvWrA/edit)`
+- **Jira Tickets**: `https://mozilla-hub.atlassian.net/browse/TR-1234: "Complete product specification and get review"`
+- **Bugzilla Bugs**: `https://bugzilla.mozilla.org/show_bug.cgi?id=1234567: "Firefox crashes when playing multiple videos in the same tab"`
+- **GitHub Issues**: `https://github.com/nicudo/portio/issues/16627: "Class fields are not transformed correctly when targeting ES2022"`
+- **GitHub PRs**: `https://github.com/nicudo/portio/pull/16645: "Fix class field ordering with decorators"`
+- **Wikipedia Articles**: `https://en.wikipedia.org/wiki/Pulitzer_Prize`
 
 ## Future Feature Ideas
 
 A lot more could be done! Please file issues here and I will see them. I am also responsive to email at [flink@joivid.com](mailto:flink@joivid.com) and happy to chat.
 
 1. The way I choose to format links, whether for title, selection, or my site-specific support, is my preference, but I could make it configurable.
-2. I can support more sites for flinks. Let me know your requests, and I will do it.
+2. I could support more sites for flinks. Let me know your requests, and I will do it.
 3. I could create a way to specify formatting using JSON and download formatting definitions from a server instead of baking them into code.
 4. Users could locally choose which definitions are enabled and create their own locally as well.
 5. With this model, formatting definitions could be contributed by users.
