@@ -1,3 +1,9 @@
+> [!NOTE]
+> **This project has moved to [drubino-mozilla/flink](https://github.com/drubino-mozilla/flink).**
+>
+> Development continues there. This repository is archived and read-only as of
+> version 1.2.6 — please file issues and open pull requests in the new location.
+
 ## Flink Extension Overview
 
 This extension is your comprehensive solution for copying links... or it will be one day as its feature set expands. Ideally, we'll get some of this functionality built into Firefox, but for now, this extension serves as a playground.
